@@ -106,6 +106,14 @@ class Packet(_MetaPacket("Temp", (object,), {})):
     def __iter__(self):
         return iter(zip(self.__class__.__hdr_fields__, map(self.__getitem__, self.__class__.__hdr_fields__)))
 
+    def __contains__(self, other):
+        if not isinstance(self.data, Packet):
+            return False
+
+        if isinstance(self.data, other):
+            return True
+        return other in self.data
+
     def __getitem__(self, k):
         try:
             return getattr(self, k)
@@ -278,3 +286,10 @@ def test_pack_hdr_tuple():
     foo = Foo()
     b = bytes(foo)
     assert b == b'\x00\x00\x00\x01\x00\x00\x00\x02'
+
+def test_contains():
+    import dpkt
+    pkt = dpkt.ethernet.Ethernet(data=dpkt.ip.IP(data=dpkt.udp.UDP()))
+
+    assert dpkt.udp.UDP in pkt
+    assert dpkt.tcp.TCP not in pkt
