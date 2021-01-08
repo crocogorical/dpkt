@@ -179,6 +179,11 @@ class Packet(_MetaPacket("Temp", (object,), {})):
         """Return packed header + self.data string."""
         return bytes(self)
 
+    def layers(self):
+        if isinstance(self.data, Packet):
+            return [self.__class__, *self.data.layers()]
+        return [self.__class__]
+
     def unpack(self, buf):
         """Unpack packet header fields from buf, and set self.data."""
         for k, v in compat_izip(self.__hdr_fields__,
@@ -293,3 +298,14 @@ def test_contains():
 
     assert dpkt.udp.UDP in pkt
     assert dpkt.tcp.TCP not in pkt
+
+def test_layers():
+    import dpkt
+    pkt = dpkt.ethernet.Ethernet(data=dpkt.ip.IP(data=dpkt.udp.UDP()))
+
+    correct = [
+        dpkt.ethernet.Ethernet,
+        dpkt.ip.IP,
+        dpkt.udp.UDP,
+    ]
+    assert pkt.layers() == correct
