@@ -657,6 +657,8 @@ class BGP(dpkt.Packet):
             self.error = self.data
 
     class Keepalive(dpkt.Packet):
+        __hdr__ = ()
+
         def unpack(self, buf):
             pass
 
@@ -1227,3 +1229,9 @@ def test_aspath_creation():
     aspath = BGP.Update.Attribute.ASPath()
     assert bytes(aspath) == b''
     assert len(aspath) == 0
+
+
+def test_keepalive_creation():
+    keepalive = BGP.Keepalive()
+    assert bytes(keepalive) == b''
+    assert len(keepalive) == 0
