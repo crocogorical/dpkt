@@ -371,9 +371,11 @@ class BGP(dpkt.Packet):
                 )
 
             class ASPath(dpkt.Packet):
-                __hdr_defaults__ = {
-                    'segments': []
-                }
+                __hdr__ = ()
+
+                def __init__(self, *args, **kwargs):
+                    self.segments = []
+                    dpkt.Packet.__init__(self, *args, **kwargs)
 
                 def unpack(self, buf):
                     self.data = buf
@@ -1219,3 +1221,9 @@ def test_update_creation():
     update = BGP.Update()
     assert bytes(update) == b'\x00\x00\x00\x00'
     assert len(update) == 4
+
+
+def test_aspath_creation():
+    aspath = BGP.Update.Attribute.ASPath()
+    assert bytes(aspath) == b''
+    assert len(aspath) == 0
