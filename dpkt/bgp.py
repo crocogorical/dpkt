@@ -220,11 +220,13 @@ class BGP(dpkt.Packet):
                     self.data = self.data[:self.len]
 
     class Update(dpkt.Packet):
-        __hdr_defaults__ = {
-            'withdrawn': [],
-            'attributes': [],
-            'announced': []
-        }
+        __hdr__ = ()
+
+        def __init__(self, *args, **kwargs):
+            self.withdrawn = []
+            self.attributes = []
+            self.announced = []
+            dpkt.Packet.__init__(self, *args, **kwargs)
 
         def unpack(self, buf):
             self.data = buf
@@ -1211,3 +1213,9 @@ def test_bgp_add_path_6_1_as_path():
     assert (attribute.flags == 0x80)
     assert (attribute.len == 4)
     assert (socket.inet_ntop(socket.AF_INET, bytes(attribute.originator_id)) == '10.0.15.1')
+
+
+def test_update_creation():
+    update = BGP.Update()
+    assert bytes(update) == b'\x00\x00\x00\x00'
+    assert len(update) == 4
