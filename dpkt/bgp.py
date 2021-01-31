@@ -415,9 +415,8 @@ class BGP(dpkt.Packet):
                         return self.__hdr_len__ + 2 * len(self.path)
 
                     def __bytes__(self):
-                        as_str = b''
-                        for AS in self.path:
-                            as_str += struct.pack('>H', AS)
+                        self.len = len(self.data)
+                        as_str = struct.pack('>{}H'.format(self.len), *self.data)
                         return self.pack_hdr() + as_str
 
                 class ASPathSegment4(dpkt.Packet):
@@ -434,15 +433,14 @@ class BGP(dpkt.Packet):
                                 AS = struct.unpack('>I', self.data[:4])[0]
                                 self.data = self.data[4:]
                                 l_.append(AS)
-                        self.path = l_
+                        self.data = self.path = l_
 
                     def __len__(self):
                         return self.__hdr_len__ + 4 * len(self.path)
 
                     def __bytes__(self):
-                        as_str = b''
-                        for AS in self.path:
-                            as_str += struct.pack('>I', AS)
+                        self.len = len(self.data)
+                        as_str = struct.pack('>{}I'.format(self.len), *self.data)
                         return self.pack_hdr() + as_str
 
             class NextHop(dpkt.Packet):
@@ -1235,3 +1233,61 @@ def test_keepalive_creation():
     keepalive = BGP.Keepalive()
     assert bytes(keepalive) == b''
     assert len(keepalive) == 0
+
+
+def test_aspathsegment_length_calculation():
+    from binascii import unhexlify
+    buf = unhexlify(
+        '11'  # type
+        '02'  # len (number of paths)
+
+        '2222'  # path 1
+        '3333'  # path 2
+    )
+    aspathsegment = BGP.Update.Attribute.ASPath.ASPathSegment(buf)
+    assert bytes(aspathsegment) == buf
+    assert len(aspathsegment) == len(buf)
+    assert aspathsegment.len == 2
+
+    # add a new path
+    aspathsegment.data.append(0x4444)
+    buf_updated = unhexlify(
+        '11'  # type
+        '03'  # len (number of paths)
+
+        '2222'  # path 1
+        '3333'  # path 2
+        '4444'  # path 3
+    )
+    assert bytes(aspathsegment) == buf_updated
+    assert len(aspathsegment) == len(buf_updated)
+    assert aspathsegment.len == 3
+
+
+def test_aspathsegment4_length_calculation():
+    from binascii import unhexlify
+    buf = unhexlify(
+        '11'  # type
+        '02'  # len (number of paths)
+
+        '22222222'  # path 1
+        '33333333'  # path 2
+    )
+    aspathsegment = BGP.Update.Attribute.ASPath.ASPathSegment4(buf)
+    assert bytes(aspathsegment) == buf
+    assert len(aspathsegment) == len(buf)
+    assert aspathsegment.len == 2
+
+    # add a new path
+    aspathsegment.data.append(0x44444444)
+    buf_updated = unhexlify(
+        '11'  # type
+        '03'  # len (number of paths)
+
+        '22222222'  # path 1
+        '33333333'  # path 2
+        '44444444'  # path 3
+    )
+    assert bytes(aspathsegment) == buf_updated
+    assert len(aspathsegment) == len(buf_updated)
+    assert aspathsegment.len == 3
